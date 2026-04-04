@@ -1,5 +1,5 @@
-# Copy to .dev.vars for local development — never commit .dev.vars
-TG_BOT_TOKEN=1234567890:ABCdefGHIjklMNOpqrSTUvwxYZ
+# Copy to .dev.vars for local dev. Never commit .dev.vars.
+TG_BOT_TOKEN=1234567890:AAxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 BTCPAY_URL=https://your.btcpay.server
-BTCPAY_API_KEY=your_btcpay_store_api_key
+BTCPAY_API_KEY=your_btcpay_api_key
 BTCPAY_STORE_ID=your_btcpay_store_id

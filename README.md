@@ -4,93 +4,88 @@ Backend API for [sats.day](https://sats.day) — Cloudflare Workers + D1 + KV.
 
 ## Stack
 
-| Layer        | Tech                              |
-|--------------|-----------------------------------|
-| Runtime      | Cloudflare Workers (TypeScript)   |
-| Database     | Cloudflare D1 (SQLite) — APAC/SIN |
-| KV           | Cloudflare KV (sessions, signals) |
-| Queue        | Cloudflare Queues                 |
-| Payments     | BTCPay Server (Lightning)         |
-| Auth         | Telegram Login Widget + HMAC      |
-
-## Provisioned resources (Cey Lounge account)
-
-| Resource        | Name       | ID                                   |
-|-----------------|------------|--------------------------------------|
-| D1 Database     | satsday    | 22b17f35-6fb6-4227-93db-fc89b216635a |
-| KV Namespace    | satsday-kv | cb6b1e0095604bdb9324057bc127c964     |
-| CF Account      | Cey Lounge | 82c5ee4b5bf756e6658c8d9807d21592     |
+| Layer        | Tech                            |
+|--------------|---------------------------------|
+| Runtime      | Cloudflare Workers (TypeScript) |
+| Database     | Cloudflare D1 `satsday`         |
+| KV store     | Cloudflare KV `satsday-kv`      |
+| Queue        | Cloudflare Queues               |
+| Payments     | BTCPay Server (Lightning)       |
+| Auth         | Telegram Login Widget + HMAC    |
 
 ## Endpoints
 
-| Method | Path                  | Auth           | Description                        |
-|--------|-----------------------|----------------|------------------------------------|
-| POST   | /auth/telegram        | —              | TG Login Widget → session token    |
-| GET    | /me                   | X-Session-Token| Current user + balance             |
-| GET    | /solver/task          | X-Session-Token| Fetch next captcha from queue      |
-| POST   | /solver/solve         | X-Session-Token| Submit answer → earn sats          |
-| GET    | /solver/history       | X-Session-Token| Recent solved tasks                |
-| POST   | /deposit              | X-Session-Token| Create BTCPay Lightning invoice    |
-| GET    | /deposit/status       | —              | Poll invoice payment status        |
-| POST   | /btcpay/webhook       | BTCPay-Sig     | Payment settled → credit balance   |
-| POST   | /register             | —              | Register buyer API key             |
-| POST   | /submit               | X-API-Key      | Submit captcha task (buyer)        |
-| GET    | /result/:id           | X-API-Key      | Poll captcha result                |
-| GET    | /balance              | X-API-Key      | Buyer sats balance                 |
-| POST   | /buyer/deposit        | X-API-Key      | Buyer Lightning invoice            |
+### Auth (session token)
+| Method | Path                  | Description                         |
+|--------|-----------------------|-------------------------------------|
+| POST   | /auth/telegram        | Verify TG widget data → session token |
+| GET    | /me                   | Current user profile + balance      |
 
-## Deploy (one-time setup)
+### Solver (X-Session-Token)
+| Method | Path                  | Description                         |
+|--------|-----------------------|-------------------------------------|
+| GET    | /solver/task          | Fetch next queued CAPTCHA            |
+| POST   | /solver/solve         | Submit answer → earn sats           |
+| GET    | /solver/history       | Past task history                   |
+| POST   | /deposit              | Create BTCPay Lightning invoice     |
+| GET    | /deposit/status       | Poll invoice payment status         |
+
+### Buyer API (X-API-Key)
+| Method | Path                  | Description                         |
+|--------|-----------------------|-------------------------------------|
+| POST   | /register             | Create buyer account + API key      |
+| POST   | /submit               | Submit CAPTCHA task                 |
+| GET    | /result/:id           | Poll for solution                   |
+| GET    | /balance              | Check sats balance + tier           |
+| POST   | /buyer/deposit        | Top up balance via Lightning        |
+
+### Webhooks
+| Method | Path                  | Description                         |
+|--------|-----------------------|-------------------------------------|
+| POST   | /btcpay/webhook       | BTCPay payment settled → credit     |
+
+## Cloudflare Resources
+
+| Resource   | Name / ID                                  |
+|------------|--------------------------------------------|
+| D1         | `satsday` · `22b17f35-6fb6-4227-93db-fc89b216635a` |
+| KV         | `satsday-kv` · `cb6b1e0095604bdb9324057bc127c964`  |
+| Account    | Cey Lounge · `82c5ee4b5bf756e6658c8d9807d21592`    |
+
+## Setup
 
 ```bash
 npm install
 
-# 1. Create the Queues (D1 + KV already provisioned above)
-wrangler queues create satsday-tasks
+# Set secrets (run once after first deploy)
+wrangler secret put TG_BOT_TOKEN
+wrangler secret put BTCPAY_URL
+wrangler secret put BTCPAY_API_KEY
+wrangler secret put BTCPAY_STORE_ID
 
-# 2. Set secrets
-wrangler secret put TG_BOT_TOKEN      # @bitcoindeepabot token from BotFather
-wrangler secret put BTCPAY_URL        # https://your.btcpay.server
-wrangler secret put BTCPAY_API_KEY    # BTCPay store API key
-wrangler secret put BTCPAY_STORE_ID   # BTCPay store ID
-
-# 3. Deploy
+# Deploy
 npm run deploy
-
-# 4. Add custom domain in CF dashboard:
-#    Workers > satsday-api-be > Settings > Domains > Add Custom Domain
-#    → api.sats.day
 ```
 
-## GitHub Actions (auto-deploy on push)
+## Custom domain
 
-Add these secrets to the repo (Settings → Secrets → Actions):
+After first deploy, add `api.sats.day` as a custom domain in:
+Cloudflare Dashboard → Workers & Pages → satsday-api-be → Settings → Domains & Routes
 
-| Secret                  | Value                              |
-|-------------------------|------------------------------------|
-| CLOUDFLARE_API_TOKEN    | CF API token with Workers:Edit     |
-| CLOUDFLARE_ACCOUNT_ID   | 82c5ee4b5bf756e6658c8d9807d21592  |
-| TG_BOT_TOKEN            | @bitcoindeepabot bot token         |
-| BTCPAY_URL              | Your BTCPay Server URL             |
-| BTCPAY_API_KEY          | BTCPay store API key               |
-| BTCPAY_STORE_ID         | BTCPay store ID                    |
+## BTCPay Webhook
 
-## Local dev
+Configure in BTCPay: Store → Webhooks → Add webhook
+- URL: `https://api.sats.day/btcpay/webhook`
+- Events: `InvoiceSettled`, `InvoicePaymentSettled`
 
-```bash
-cp .dev.vars.example .dev.vars
-# Fill in .dev.vars with your values
-npm run dev     # wrangler dev on localhost:8787
+## BotFather setup
+
 ```
-
-## BotFather setup (required for Telegram Login Widget)
-
-1. Open @BotFather → `/setdomain`
-2. Select @bitcoindeepabot
-3. Enter: `sats.day`
-
-This allows the Telegram Login Widget on sats.day to work.
+/setdomain → sats.day
+```
+Required for Telegram Login Widget to work on the frontend.
 
 ## Related
 
 - Frontend: [satsday-web-fe](https://github.com/CeyLabs/satsday-web-fe)
-- Live: [sats.day](https://sats.day) | API: [api.sats.day](https://api.sats.day)
+- Telegram bot: [@bitcoindeepabot](https://t.me/bitcoindeepabot)
