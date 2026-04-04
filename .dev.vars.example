@@ -1,3 +1,5 @@
-# Copy to .dev.vars for local dev (never commit .dev.vars)
-LNBITS_BASE_URL=https://your-lnbits.instance
-LNBITS_API_KEY=your_lnbits_invoice_key
+# Copy to .dev.vars for local development — never commit .dev.vars
+TG_BOT_TOKEN=1234567890:ABCdefGHIjklMNOpqrSTUvwxYZ
+BTCPAY_URL=https://your.btcpay.server
+BTCPAY_API_KEY=your_btcpay_store_api_key
+BTCPAY_STORE_ID=your_btcpay_store_id

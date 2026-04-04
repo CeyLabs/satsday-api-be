@@ -1,65 +1,49 @@
 import type { Env } from './types'
-import { registerBuyer } from './handlers/register'
-import { submitTask }    from './handlers/submit'
-import { getResult }     from './handlers/result'
-import { getBalance }    from './handlers/balance'
-import { depositInvoice } from './handlers/deposit'
-
-const CORS_HEADERS = {
-  'Access-Control-Allow-Origin':  '*',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, X-API-Key',
-}
+import { corsHeaders, jsonErr } from './utils'
+import { handleTelegramAuth, handleMe }    from './handlers/auth'
+import { registerBuyer, submitTask, getResult, getBalance } from './handlers/register'
+import { getSolverTask, submitSolverTask, getSolverHistory } from './handlers/solver'
+import { createDeposit, createBuyerDeposit, getDepositStatus, btcpayWebhook } from './handlers/btcpay'
 
 export class Router {
-  constructor(private env: Env, private ctx: ExecutionContext) {}
+  constructor(private env: Env) {}
 
   async handle(req: Request): Promise<Response> {
-    const url    = new URL(req.url)
-    const method = req.method
+    if (req.method === 'OPTIONS') return corsHeaders()
 
-    if (method === 'OPTIONS') {
-      return new Response(null, { status: 204, headers: CORS_HEADERS })
-    }
+    const url  = new URL(req.url)
+    const path = url.pathname
+    const m    = req.method
 
     try {
-      // POST /register  — create buyer, return invoice + api_key
-      if (method === 'POST' && url.pathname === '/register') {
-        return await registerBuyer(req, this.env)
-      }
+      // ── Auth ──────────────────────────────────────────
+      if (m === 'POST' && path === '/auth/telegram')    return handleTelegramAuth(req, this.env)
+      if (m === 'GET'  && path === '/me')               return handleMe(req, this.env)
 
-      // POST /deposit   — top up existing api_key balance
-      if (method === 'POST' && url.pathname === '/deposit') {
-        return await depositInvoice(req, this.env)
-      }
+      // ── Solver (session auth) ─────────────────────────
+      if (m === 'GET'  && path === '/solver/task')      return getSolverTask(req, this.env)
+      if (m === 'POST' && path === '/solver/solve')     return submitSolverTask(req, this.env)
+      if (m === 'GET'  && path === '/solver/history')   return getSolverHistory(req, this.env)
 
-      // POST /submit    — submit a CAPTCHA task
-      if (method === 'POST' && url.pathname === '/submit') {
-        return await submitTask(req, this.env)
-      }
+      // ── Solver deposit ────────────────────────────────
+      if (m === 'POST' && path === '/deposit')          return createDeposit(req, this.env)
+      if (m === 'GET'  && path === '/deposit/status')   return getDepositStatus(req, this.env)
 
-      // GET /result/:id — poll for solution
-      const resultMatch = url.pathname.match(/^\/result\/([a-z0-9_]+)$/)
-      if (method === 'GET' && resultMatch) {
-        return await getResult(req, this.env, resultMatch[1])
-      }
+      // ── BTCPay webhook ────────────────────────────────
+      if (m === 'POST' && path === '/btcpay/webhook')   return btcpayWebhook(req, this.env)
 
-      // GET /balance    — check sats balance
-      if (method === 'GET' && url.pathname === '/balance') {
-        return await getBalance(req, this.env)
-      }
+      // ── Buyer API (api key auth) ───────────────────────
+      if (m === 'POST' && path === '/register')         return registerBuyer(req, this.env)
+      if (m === 'POST' && path === '/submit')           return submitTask(req, this.env)
+      if (m === 'POST' && path === '/buyer/deposit')    return createBuyerDeposit(req, this.env)
+      if (m === 'GET'  && path === '/balance')          return getBalance(req, this.env)
+      const resultMatch = path.match(/^\/result\/([a-z0-9_]+)$/)
+      if (m === 'GET'  && resultMatch)                  return getResult(req, this.env, resultMatch[1])
 
-      return this.json({ error: 'not_found' }, 404)
+      return jsonErr('not_found', 404)
     } catch (err) {
-      console.error(err)
-      return this.json({ error: 'internal_error' }, 500)
+      console.error('[Router]', err)
+      return jsonErr('internal_error', 500)
     }
-  }
-
-  private json(body: unknown, status = 200): Response {
-    return new Response(JSON.stringify(body), {
-      status,
-      headers: { 'Content-Type': 'application/json', ...CORS_HEADERS },
-    })
   }
 }
