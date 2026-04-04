@@ -1,0 +1,26 @@
+name            = "satsday-api-be"
+main            = "src/index.ts"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+ENVIRONMENT     = "production"
+LNBITS_BASE_URL = ""   # set in CF dashboard secrets
+
+[[d1_databases]]
+binding  = "DB"
+database_name = "satsday"
+database_id   = ""     # fill after `wrangler d1 create satsday`
+
+[[queues.producers]]
+binding    = "TASK_QUEUE"
+queue_name = "satsday-tasks"
+
+[[queues.consumers]]
+queue_name         = "satsday-tasks"
+max_batch_size     = 10
+max_batch_timeout  = 5
+
+[[kv_namespaces]]
+binding = "KV"
+id      = ""           # fill after `wrangler kv:namespace create satsday-kv`
