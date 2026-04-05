@@ -88,4 +88,4 @@ Required for Telegram Login Widget to work on the frontend.
 ## Related
 
 - Frontend: [satsday-web-fe](https://github.com/CeyLabs/satsday-web-fe)
-- Telegram bot: [@SatsDayBot](https://t.me/bitcoindeepabot)
+- Telegram bot: [@satsdaybot](https://t.me/satsdaybot)

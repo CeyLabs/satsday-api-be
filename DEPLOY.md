@@ -39,7 +39,7 @@ https://github.com/CeyLabs/satsday-api-be/settings/secrets/actions
 |-------------------------|-------------------------------------|
 | `CLOUDFLARE_API_TOKEN`  | Token from Step 1                   |
 | `CLOUDFLARE_ACCOUNT_ID` | `82c5ee4b5bf756e6658c8d9807d21592`  |
-| `TG_BOT_TOKEN`          | @SatsDayBot token from BotFather |
+| `TG_BOT_TOKEN`          | @satsdaybot token from BotFather |
 | `BTCPAY_URL`            | https://your.btcpay.server          |
 | `BTCPAY_API_KEY`        | BTCPay store API key                |
 | `BTCPAY_STORE_ID`       | BTCPay store ID                     |
@@ -93,7 +93,7 @@ In BTCPay Server:
 
 ```
 /setdomain
-→ select @SatsDayBot
+→ select @satsdaybot
 → enter: sats.day
 ```
 
