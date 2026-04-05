@@ -5,13 +5,13 @@ compatibility_flags  = ["nodejs_compat"]
 account_id           = "82c5ee4b5bf756e6658c8d9807d21592"
 
 [vars]
-ENVIRONMENT          = "production"
-FRONTEND_URL         = "https://sats.day"
+ENVIRONMENT  = "production"
+FRONTEND_URL = "https://sats.day"
 
-# Secrets (set via `wrangler secret put`):
-#   TG_BOT_TOKEN      — @satsdaybot token (for auth hash verification)
-#   BTCPAY_URL        — https://your.btcpay.server
-#   BTCPAY_API_KEY    — BTCPay Server API key
+# Secrets (set via `wrangler secret put` or GitHub Actions):
+#   TG_BOT_TOKEN      — @satsdaybot token
+#   BTCPAY_URL        — BTCPay Server URL
+#   BTCPAY_API_KEY    — BTCPay store API key
 #   BTCPAY_STORE_ID   — BTCPay store ID
 
 [[d1_databases]]
@@ -24,13 +24,10 @@ binding = "KV"
 id      = "cb6b1e0095604bdb9324057bc127c964"
 
 [[queues.producers]]
-binding    = "TASK_QUEUE"
-queue_name = "satsday-tasks"
+binding = "TASK_QUEUE"
+queue   = "satsday-tasks"
 
 [[queues.consumers]]
-queue_name        = "satsday-tasks"
+queue             = "satsday-tasks"
 max_batch_size    = 10
 max_batch_timeout = 5
-
-[routes]
-# Served at api.sats.day via custom domain on CF
